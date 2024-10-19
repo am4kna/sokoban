@@ -32,7 +32,11 @@ class SokobanPuzzle:
     def executeMove(self, action, tab_stat):
         """Executes a move in the given direction."""
         if action in self.moves:
-            return self.move(self.moves[action], tab_stat)
+            print(f"Executing move: {action}")
+            success = self.move(self.moves[action], tab_stat)
+            print(f"Move result: {'Success' if success else 'Failed'}")
+            self.print_board()  # Output the board state after the move
+            return success
         return False
 
     def move(self, direction, tab_stat):
@@ -43,6 +47,7 @@ class SokobanPuzzle:
         
         # Check boundaries and wall
         if not self.is_in_bounds(new_robot_x, new_robot_y) or tab_stat[new_robot_x][new_robot_y] == 'O':
+            print("Blocked by boundary or wall.")
             return False
 
         # Check if the robot is moving towards a box
@@ -50,12 +55,15 @@ class SokobanPuzzle:
             # Check if the box can be pushed
             new_box_x, new_box_y = new_robot_x + dx, new_robot_y + dy
             if not self.is_in_bounds(new_box_x, new_box_y) or self.tab_dyn[new_box_x][new_box_y] == 'B' or tab_stat[new_box_x][new_box_y] == 'O':
+                print("Cannot push the box.")
                 return False  # Can't push the box
 
             # Move the box
+            print(f"Pushing box from ({new_robot_x}, {new_robot_y}) to ({new_box_x}, {new_box_y})")
             self.update_position((new_box_x, new_box_y), (new_robot_x, new_robot_y), 'B', tab_stat)
 
         # Move the robot
+        print(f"Moving robot from ({robot_x}, {robot_y}) to ({new_robot_x}, {new_robot_y})")
         self.update_position((new_robot_x, new_robot_y), (robot_x, robot_y), 'R', tab_stat)
         self.robot_position = (new_robot_x, new_robot_y)
         return True
@@ -80,3 +88,9 @@ class SokobanPuzzle:
             self.tab_dyn[old_x][old_y] = 'S'
         else:
             self.tab_dyn[old_x][old_y] = ' '
+
+    def print_board(self):
+        """Print the current dynamic state of the board."""
+        for row in self.tab_dyn:
+            print(''.join(row))
+        print("\n")
