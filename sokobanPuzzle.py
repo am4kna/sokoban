@@ -1,13 +1,7 @@
+from copy import deepcopy
 import numpy as np
 
-""" Representations:
-O => Obstacle
-S => Storage
-B => Block
-R => Robot
-* => Block on a storage
-. => Robot on a storage """
-
+from node import Node
 
 class SokobanPuzzle:
 
@@ -28,7 +22,7 @@ class SokobanPuzzle:
             if self.tab_dyn[ind_x][ind_y] != 'B':  # Target space must have a box
                 return False
         return True
-
+    
     def executeMove(self, action, tab_stat):
         """Executes a move in the given direction."""
         if action in self.moves:
@@ -94,3 +88,17 @@ class SokobanPuzzle:
         for row in self.tab_dyn:
             print(''.join(row))
         print("\n")
+
+    def successorFunction(self, tab_stat):
+        """Generates pairs of (action, successor) representing all valid moves."""
+        successors = []
+        for action, direction in self.moves.items():  # Iterate over the moves dictionary
+            next_state = deepcopy(self)  # Create a deep copy of the current puzzle state
+            if next_state.executeMove(action, tab_stat):  # Check if the move is valid
+                # Create the successor node
+                successor_node = Node(next_state, action=action, tab_stat=tab_stat)
+                print(f"Action: {action}, Generated successor with depth {successor_node.depth}")
+                # Append the tuple (action, successor_node) to the list
+                successors.append((action, successor_node))
+        print(f"Total successors generated: {len(successors)}")
+        return successors

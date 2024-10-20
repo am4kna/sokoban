@@ -10,19 +10,23 @@ class Node:
         self.moves = "" if parent is None else parent.moves + action
         self.tab_stat = tab_stat  # Passing static elements as an instance variable
 
-    def successorFunction(self):
-        """Generates pairs of (action, successor) representing all valid moves."""
-        successors = []
-        for action, direction in self.state.moves.items():  # Iterate over the moves dictionary
-            next_state = deepcopy(self.state)  # Create a deep copy of the current puzzle state
-            if next_state.executeMove(action, self.tab_stat):  # Check if the move is valid
-                # Create the successor node
-                successor_node = Node(next_state, self, action, tab_stat=self.tab_stat)
-                print(f"Action: {action}, Generated successor with depth {successor_node.depth}")
-                # Append the tuple (action, successor_node) to the list
-                successors.append((action, successor_node))
-        print(f"Total successors generated: {len(successors)}")
-        return successors
+    def getPath(self):
+        """Returns a list of states representing the path from the initial state to the current node."""
+        path = []
+        node = self
+        while node is not None:
+            path.append(node.state.tab_dyn)
+            node = node.parent
+        return path[::-1]  # Return the path from initial state to goal
+
+    def getSolution(self):
+        """Returns a list of actions taken to reach the current node."""
+        solution = []
+        node = self
+        while node.parent is not None:
+            solution.append(node.action)
+            node = node.parent
+        return solution[::-1]  # Return the list of actions from initial state to goal
 
     def setF(self, heuristic=1):
         """Sets the f value based on the chosen heuristic."""
@@ -39,16 +43,13 @@ class Node:
             return self.heuristic3()
 
     def heuristic1(self):
-        # Example heuristic (this can be customized further)
         print("Calculating heuristic1...")
         return 0  # Placeholder for a heuristic
 
     def heuristic2(self):
-        # Another example heuristic
         print("Calculating heuristic2...")
         return 0  # Placeholder for a heuristic
 
     def heuristic3(self):
-        # Another example heuristic
         print("Calculating heuristic3...")
         return 0  # Placeholder for a heuristic
