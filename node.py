@@ -1,4 +1,7 @@
+from collections import deque
 from copy import deepcopy
+import numpy as np
+from math import inf
 import itertools
 
 
@@ -45,3 +48,84 @@ class Node:
         return solution 
 
     
+    # Choose one of the available heuristics
+    def costHeur(self, heuristic=1): # Return the cost of the current node
+        heuristics = {1: self.heuristic1(),
+                    2: self.heuristic2(),
+                    3: self.heuristic3()} # The available heuristics are stored in a dictionary, the keys of the dictionary are the numbers of the heuristics, and the values of the dictionary are the values of the heuristics
+        self.cost = self.cost + heuristics[heuristic] # The cost of the current node is the cost of the parent node plus the cost of the move plus the value of the heuristic
+        
+    
+    """ First heuristic: Number of left storages """
+    def heuristic1(self): # Return the value of the first heuristic, the value of the first heuristic is the number of left storages, the number of left storages is the number of goal cells that are not occupied by a box
+
+        # Retrieve all the storage cells
+        tab_stat = np.array(Node.tab_stat) # Convert the wall, space and obstacle of the puzzle to a numpy array, the numpy array is used to find the storage cells, the storage cells are the cells that are not walls, spaces or obstacles
+        S_indices_x, S_indices_y = np.where(tab_stat == 'S') # Find the indices of the storage cells, the indices are stored in two lists, the first list is the list of the indices of the rows of the storage cells, and the second list is the list of the indices of the columns of the storage cells
+        
+        left_storage = len(S_indices_x) # The number of left storages is the number of storage cells
+        # Count the number of the left storages
+        for ind_x, ind_y in zip(S_indices_x, S_indices_y): # Iterate over the indices of the storage cells, zip is used to iterate over two lists at the same time
+            if self.state.tab_dyn[ind_x][ind_y] == 'B': # Check if the current storage cell is occupied by a box or not
+                left_storage -= 1 # If the current storage cell is occupied by a box, then decrease the number of left storages by one
+
+        return left_storage # Return the value of the first heuristic
+
+    """ Second heuristic: 2*Number of left storage cells + Min Manhattan Distance between blocks and storage goals """
+    def heuristic2(self): # Return the value of the second heuristic, the value of the second heuristic is the number of left storages plus the minimum Manhattan distance between the blocks and the storage goals
+
+        # Retrieve all the storage cells
+        tab_stat = np.array(Node.tab_stat)
+        S_indices_x, S_indices_y = np.where(tab_stat == 'S')
+
+        # Retrieve all the blocks
+        tab_dyn = np.array(self.state.tab_dyn)
+        B_indices_x, B_indices_y = np.where(tab_dyn == 'B')
+
+        sum_distance = 0
+        storage_left = len(S_indices_x)
+        for b_ind_x, b_ind_y in zip(B_indices_x, B_indices_y):
+
+            # Get the distance between each box and the nearest storage
+            min_distance = +inf
+            for s_ind_x, s_ind_y in zip(S_indices_x, S_indices_y):
+                distance = abs(b_ind_x-s_ind_x) +  abs(b_ind_y-s_ind_y)
+                if distance == 0: storage_left -= 1
+                if distance < min_distance:
+                    min_distance = distance
+            sum_distance += min_distance
+        
+        return sum_distance + 2*storage_left
+
+    """ Third heuristic: Min Manhattan Distance between blocks and storage goals + Min Manhattan Distance between the robot and the blocks 
+                        + 2 * Number of left storage cells"""
+    def heuristic3(self):
+
+        # Retrieve all the storage cells
+        tab_stat = np.array(Node.tab_stat)
+        S_indices_x, S_indices_y = np.where(tab_stat == 'S')
+
+        # Retrieve all the blocks
+        tab_dyn = np.array(self.state.tab_dyn)
+        B_indices_x, B_indices_y = np.where(tab_dyn == 'B')
+
+        sum_distance = 0
+        storage_left = len(S_indices_x)
+        min_distance_br = +inf
+        for b_ind_x, b_ind_y in zip(B_indices_x, B_indices_y):
+
+            # Get the distance between each box and the robot
+            distance_br = abs(b_ind_x-self.state.robot_position[0]) + abs(b_ind_y-self.state.robot_position[1])
+            if distance_br < min_distance_br:
+                min_distance_br = distance_br
+
+            # Get the distance between each box and the nearest storage
+            min_distance = +inf
+            for s_ind_x, s_ind_y in zip(S_indices_x, S_indices_y):
+                distance = abs(b_ind_x-s_ind_x) +  abs(b_ind_y-s_ind_y)
+                if distance == 0: storage_left -= 1
+                if distance < min_distance:
+                    min_distance = distance
+            sum_distance += min_distance
+                        
+        return sum_distance + min_distance_br + 2*storage_left
