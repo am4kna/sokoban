@@ -89,7 +89,7 @@ class SokobanPuzzle:
             print(''.join(row))
         print("\n")
 
-    def successorFunction(self, tab_stat):
+    def succ(self, tab_stat):
         """Generates pairs of (action, successor) representing all valid moves."""
         successors = []
         for action, direction in self.moves.items():  # Iterate over the moves dictionary

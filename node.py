@@ -49,7 +49,7 @@ class Node:
 
     
     # Choose one of the available heuristics
-    def costHeur(self, heuristic=1): # Return the cost of the current node
+    def f(self, heuristic=1): # Return the cost of the current node
         heuristics = {1: self.heuristic1(),
                     2: self.heuristic2(),
                     3: self.heuristic3()} # The available heuristics are stored in a dictionary, the keys of the dictionary are the numbers of the heuristics, and the values of the dictionary are the values of the heuristics

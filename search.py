@@ -5,7 +5,7 @@ from tkinter import *
 class Search: # Search class
 
     @staticmethod # BFS search algorithm 
-    def breadthFirst(initial_node, window, deadlock_detection= False): # initial_node is a Node object representing the initial state of the puzzle
+    def breadthFirst(initial_node): # initial_node is a Node object representing the initial state of the puzzle
         
         
         # Check if the start element is the goal
@@ -22,33 +22,14 @@ class Search: # Search class
             
             step +=1 # Increment the number of nodes expanded
             # print (f'*** Step {step} ***') # Print the current step
-            
-            #delete the last label if existed
-            try:
-                label12.destroy()
-            except:
-                pass
-
-            label12 = Label(window, text=f'*** Step {step} ***', bg='#c45242', fg='white') #erreur de pas ecrire au meme temps de recherche 
-            label12.pack()
-            window.update()
-
             # Check if the OPEN queue is empty => goal not found 
             if len(open) == 0: # If the OPEN queue is empty
                 return None, -1 # Return None and -1
             
             # Get the first element of the OPEN queue
             current = open.popleft() # current is a Node object
-            
-            
-            
             # Put the current node in the CLOSED list
-            closed.append(current) # current is a Node object
-            
-            if deadlock_detection:
-                if current.state.isDeadLock(Node.deadlock_map):
-                    continue
-                        
+            closed.append(current) # current is a Node object                    
             # Generate the successorFunctionessors of the current node
             succ = current.succ() # succ is a list of Node objects
             while len(succ) != 0: # Loop until the successors list is empty
@@ -63,18 +44,15 @@ class Search: # Search class
 
                     # Check if the child is the goal
                     if child.state.isGoal(Node.tab_stat):
-                        label12.destroy()  #delete the last label
                         return child, step      # Return the child node and the number of nodes expanded 
     
         
     @staticmethod #Astart algorithm
-    def Astar(init_node, window, heuristique=1, deadlock_detection=False):
+    def Astar(init_node, heuristique=1):
         # Check if the start element is the goal
         if init_node.state.isGoal(Node.tab_stat): # Node.tab_stat is a 2D array of strings representing the state of the puzzle
                 return init_node, 0 # Return the initial node and the number of nodes expanded
-        elif deadlock_detection:
-            if init_node.state.isDeadLock(Node.deadlock_map):
-                return None, -1
+      
         
         init_node.costHeur(heuristique)
         # Create the OPEN priority queue and the CLOSED list
@@ -84,16 +62,7 @@ class Search: # Search class
         while True: # Loop until the goal is found or the OPEN queue is empty
             step +=1 # Increment the number of nodes expanded
             # print (f'*** Step {step} ***') # Print the current step
-            
-            #delete the last label if existed
-            try:
-                label123.destroy()
-            except:
-                pass
-            
-            label123 = Label(window, text=f'*** Step {step} ***', bg='#c45242', fg='white')   #erreur de pas ecrire au meme temps de recherche 
-            label123.pack()
-            window.update()
+          
             
             # Check if the OPEN queue is empty => goal not found
             if len(open) == 0: # If the OPEN queue is empty
@@ -110,11 +79,8 @@ class Search: # Search class
 
             # check if the current node is the goal
             if current.state.isGoal(Node.tab_stat):
-                label123.destroy()  #delete the last label
                 return current, step # Return the child node and the number of nodes expanded
-            elif deadlock_detection:
-                if current.state.isDeadLock(Node.deadlock_map):
-                    continue
+    
             
             
             # Generate the successors of the current node
