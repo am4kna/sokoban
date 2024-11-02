@@ -1,104 +1,192 @@
-from copy import deepcopy
 import numpy as np
-
+from collections import deque
+from copy import deepcopy
 from node import Node
+""" Representations:
+O => Obstacle
+S => Storage
+B => Block
+R => Robot
+* => Block on a storage
+. => Robot on a storage """
 
-class SokobanPuzzle:
+class SokoPuzzle:
 
-    def __init__(self, tab_dyn, robot_position):
-        self.tab_dyn = tab_dyn  # Dynamic elements of the puzzle (robot, boxes)
-        self.robot_position = robot_position  # Robot's position tuple
-        self.moves = {
-            "U": (-1, 0),  # Move Up: Decrease row
-            "D": (1, 0),   # Move Down: Increase row
-            "L": (0, -1),  # Move Left: Decrease column
-            "R": (0, 1)    # Move Right: Increase column
-        }
+    def __init__(self, tab_dyn, robot_position): #tab_dyn is a 2D array of strings representing the state of the puzzle and robot_position is a tuple of ints representing the position of the robot    
+        
+        # Initialize the SokoPuzzle Board
+        self.tab_dyn = tab_dyn
+        self.robot_position = robot_position 
+                
+        # List of the robot's moves
+        self.moves = ["U", "D", "L", "R"]        
 
-    def isGoal(self, tab_stat):
-        # Check if all targets ('S') have boxes ('B' or '*')
-        S_indices_x, S_indices_y = np.where(np.array(tab_stat) == 'S')  # Get all target spaces
+    def isDeadLock(self, deadlock_map):
+        # Retrieve all the storage cells
+        S_indices_x, S_indices_y = np.where(np.logical_or(np.array(deadlock_map) == 'D', np.array(deadlock_map) == 'L')) # S_indices_x and S_indices_y are 1D arrays of ints representing the indices of the storage cells in the puzzle board
+        
+        # Check if the storage cells contain blocks
         for ind_x, ind_y in zip(S_indices_x, S_indices_y):
-            if self.tab_dyn[ind_x][ind_y] != 'B':  # Target space must have a box
+            if self.tab_dyn[ind_x][ind_y] == 'B':
+                return True
+        return False
+    
+    def isGoal(self, tab_stat): # Check if the puzzle is solved or not by checking if all the blocks are on a storage, tab_stat is a 2D array of strings representing the state of the puzzle
+
+        # Retrieve all the storage cells
+        S_indices_x, S_indices_y = np.where(np.array(tab_stat) == 'S') # S_indices_x and S_indices_y are 1D arrays of ints representing the indices of the storage cells in the puzzle board
+        
+        # Check if the storage cells contain blocks
+        for ind_x, ind_y in zip(S_indices_x, S_indices_y):
+            if self.tab_dyn[ind_x][ind_y] != 'B':
                 return False
         return True
     
-    def executeMove(self, action, tab_stat):
-        """Executes a move in the given direction."""
-        if action in self.moves:
-            print(f"Executing move: {action}")
-            success = self.move(self.moves[action], tab_stat)
-            print(f"Move result: {'Success' if success else 'Failed'}")
-            self.print_board()  # Output the board state after the move
-            return success
+    def successorFunction(self, parent_node):
+        succs = deque()
+        for m in self.moves:
+            succState = deepcopy(self)
+            if succState.executeMove(m, Node.tab_stat):
+                new_node = Node(succState, parent=parent_node, move=m)
+                succs.append((new_node, m))
+        return succs
+
+    def executeMove(self, action, tab_stat): # Execute the robot's move and return the new state of the puzzle board and the new position of the robot after the move is executed, action is a string representing the robot's move and tab_stat is a 2D array of strings representing the state of the puzzle
+        if action == "U":
+            return (self.up(tab_stat))  
+        if action == "D":
+            return (self.down(tab_stat))
+        if action == "L":
+            return (self.left(tab_stat))
+        if action == "R":
+            return (self.right(tab_stat))
+
+    def up(self, tab_stat):
+
+        # Get the robot position
+        robot_x, robot_y = self.robot_position
+
+        # Move the robot up: U => [-1, 0]
+        robot_x = robot_x-1
+        
+        # Check if the robot is moving towards a block
+        if self.tab_dyn[robot_x][robot_y] == 'B':
+            # Moving the box
+            box_x, box_y = robot_x-1, robot_y
+            # If the robot is not pushing another box and is moving the box towards an empty space or storage
+            if self.tab_dyn[box_x][box_y] != 'B' and (tab_stat[box_x][box_y] == ' ' or tab_stat[box_x][box_y] == 'S'):
+                self.robot_position = (robot_x, robot_y)
+                self.tab_dyn[robot_x+1][robot_y] = ' ' 
+                self.tab_dyn[robot_x][robot_y] = 'R'
+                self.tab_dyn[box_x][box_y] = 'B'
+                return True            
+
+        else: # The robot is moving towards an empty space, a storage or a wall
+            if tab_stat[robot_x][robot_y] == ' ' or tab_stat[robot_x][robot_y] == 'S':
+                self.robot_position = (robot_x, robot_y)
+                self.tab_dyn[robot_x+1][robot_y] = ' ' 
+                self.tab_dyn[robot_x][robot_y] = 'R'                
+                return True
+
         return False
 
-    def move(self, direction, tab_stat):
-        """General method to move the robot in the given direction."""
-        dx, dy = direction
+    def down(self, tab_stat):
+
+        # Get the robot position
         robot_x, robot_y = self.robot_position
-        new_robot_x, new_robot_y = robot_x + dx, robot_y + dy
+
+        # Move the robot down: D => [1, 0]
+        robot_x = robot_x+1
+
+        # Check if the robot is moving towards a block
+        if self.tab_dyn[robot_x][robot_y] == 'B':
+            # Moving the box
+            box_x, box_y = robot_x+1, robot_y
+            # If the robot is not pushing another box and is moving the box towards an empty space or storage
+            if self.tab_dyn[box_x][box_y] != 'B' and (tab_stat[box_x][box_y] == ' ' or tab_stat[box_x][box_y] == 'S'):
+                self.robot_position = (robot_x, robot_y)
+                self.tab_dyn[robot_x-1][robot_y] = ' ' 
+                self.tab_dyn[robot_x][robot_y] = 'R'
+                self.tab_dyn[box_x][box_y] = 'B'
+                return True
+            
+        else: # The robot is moving towards an empty space, a storage or a wall
+            if tab_stat[robot_x][robot_y] == ' ' or tab_stat[robot_x][robot_y] == 'S':
+                self.robot_position = (robot_x, robot_y)
+                self.tab_dyn[robot_x-1][robot_y] = ' '
+                self.tab_dyn[robot_x][robot_y] = 'R'                
+                return True
+
+        return False
+            
+    def left(self, tab_stat):
+
+        # Get the robot position
+        robot_x, robot_y = self.robot_position
+
+        # Move the robot left: L => [0, -1]
+        robot_y = robot_y-1
+
+        # Check if the robot is moving towards a block
+        if self.tab_dyn[robot_x][robot_y] == 'B':
+            # Moving the box
+            box_x, box_y = robot_x, robot_y-1
+            # If the robot is not pushing another box and is moving the box towards an empty space or storage
+            if self.tab_dyn[box_x][box_y] != 'B' and (tab_stat[box_x][box_y] == ' ' or tab_stat[box_x][box_y] == 'S'):
+                self.robot_position = (robot_x, robot_y)
+                self.tab_dyn[robot_x][robot_y+1] = ' ' 
+                self.tab_dyn[robot_x][robot_y] = 'R'
+                self.tab_dyn[box_x][box_y] = 'B'
+                return True
+            
+        else: # The robot is moving towards a space, a storage or a wall
+            if tab_stat[robot_x][robot_y] == ' ' or tab_stat[robot_x][robot_y] == 'S':
+                self.robot_position = (robot_x, robot_y)
+                self.tab_dyn[robot_x][robot_y+1] = ' ' 
+                self.tab_dyn[robot_x][robot_y] = 'R'                
+                return True
+
+        return False
+
+    def right(self, tab_stat):
+
+        # Get the robot position
+        robot_x, robot_y = self.robot_position
+
+        # Move the robot right: R => [0, 1]
+        robot_y = robot_y+1
+
+        # Check if the robot is moving towards a block
+        if self.tab_dyn[robot_x][robot_y] == 'B':
+            # Moving the box
+            box_x, box_y = robot_x, robot_y+1
+            # If the robot is not pushing another box and is moving the box towards an empty space or storage
+            if self.tab_dyn[box_x][box_y] != 'B' and (tab_stat[box_x][box_y] == ' ' or tab_stat[box_x][box_y] == 'S'):
+                self.robot_position = (robot_x, robot_y)
+                self.tab_dyn[robot_x][robot_y-1] = ' ' 
+                self.tab_dyn[robot_x][robot_y] = 'R'
+                self.tab_dyn[box_x][box_y] = 'B'
+                return True
         
-        # Check boundaries and wall
-        if not self.is_in_bounds(new_robot_x, new_robot_y) or tab_stat[new_robot_x][new_robot_y] == 'O':
-            print("Blocked by boundary or wall.")
-            return False
+        else: # The robot is moving towards an empty space, a storage or a wall
+            if tab_stat[robot_x][robot_y] == ' ' or tab_stat[robot_x][robot_y] == 'S':
+                self.robot_position = (robot_x, robot_y)
+                self.tab_dyn[robot_x][robot_y-1] = ' ' 
+                self.tab_dyn[robot_x][robot_y] = 'R'                
+                return True
 
-        # Check if the robot is moving towards a box
-        if self.tab_dyn[new_robot_x][new_robot_y] == 'B':
-            # Check if the box can be pushed
-            new_box_x, new_box_y = new_robot_x + dx, new_robot_y + dy
-            if not self.is_in_bounds(new_box_x, new_box_y) or self.tab_dyn[new_box_x][new_box_y] == 'B' or tab_stat[new_box_x][new_box_y] == 'O':
-                print("Cannot push the box.")
-                return False  # Can't push the box
+        return False 
 
-            # Move the box
-            print(f"Pushing box from ({new_robot_x}, {new_robot_y}) to ({new_box_x}, {new_box_y})")
-            self.update_position((new_box_x, new_box_y), (new_robot_x, new_robot_y), 'B', tab_stat)
+    
 
-        # Move the robot
-        print(f"Moving robot from ({robot_x}, {robot_y}) to ({new_robot_x}, {new_robot_y})")
-        self.update_position((new_robot_x, new_robot_y), (robot_x, robot_y), 'R', tab_stat)
-        self.robot_position = (new_robot_x, new_robot_y)
-        return True
 
-    def is_in_bounds(self, x, y):
-        """Check if the position is within the bounds of the grid."""
-        return 0 <= x < len(self.tab_dyn) and 0 <= y < len(self.tab_dyn[0])
 
-    def update_position(self, new_pos, old_pos, element, tab_stat):
-        """Update the position of the robot or box."""
-        new_x, new_y = new_pos
-        old_x, old_y = old_pos
+            
+                
 
-        # Update the new position (check if it's a target space or not)
-        if tab_stat[new_x][new_y] == 'S':
-            self.tab_dyn[new_x][new_y] = '*' if element == 'B' else '.'
-        else:
-            self.tab_dyn[new_x][new_y] = element
 
-        # Update the old position
-        if tab_stat[old_x][old_y] == 'S':
-            self.tab_dyn[old_x][old_y] = 'S'
-        else:
-            self.tab_dyn[old_x][old_y] = ' '
 
-    def print_board(self):
-        """Print the current dynamic state of the board."""
-        for row in self.tab_dyn:
-            print(''.join(row))
-        print("\n")
 
-    def succ(self, tab_stat):
-        """Generates pairs of (action, successor) representing all valid moves."""
-        successors = []
-        for action, direction in self.moves.items():  # Iterate over the moves dictionary
-            next_state = deepcopy(self)  # Create a deep copy of the current puzzle state
-            if next_state.executeMove(action, tab_stat):  # Check if the move is valid
-                # Create the successor node
-                successor_node = Node(next_state, action=action, tab_stat=tab_stat)
-                print(f"Action: {action}, Generated successor with depth {successor_node.depth}")
-                # Append the tuple (action, successor_node) to the list
-                successors.append((action, successor_node))
-        print(f"Total successors generated: {len(successors)}")
-        return successors
+
+
+    
