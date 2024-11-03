@@ -67,66 +67,67 @@ class Search:
         # Check if the start element is the goal
         if init_node.state.isGoal(Node.tab_stat):
             return init_node.getPath(), 0
-        elif deadlock_detection:
-            if init_node.state.isDeadLock(Node.deadlock_map):
-                return None, -1
-        
-        init_node.setF(heuristic)
-        # Create the OPEN priority queue and the CLOSED list
+        elif deadlock_detection and init_node.state.isDeadLock(Node.deadlock_map):
+            return None, -1
+
+        # Set initial setF(heuristic) value based on the chosen heuristic
+        init_node.costHeur(heuristic)
+
+        # Initialize the OPEN list as a priority queue and the CLOSED set
         open = deque([init_node])
-        closed = list()
+        closed = set()  # CLOSED is a set of tuples representing states
         step = 0
-        while True:
+
+        while open:
             step += 1
-            
-            # Delete the last label if it exists
+
+            # Display the current step in the window (if GUI is used)
             try:
                 label123.destroy()
             except:
                 pass
-            
+
             label123 = Label(window, text=f'*** Step {step} ***', bg='#c45242', fg='white')
             label123.pack()
             window.update()
-            
-            # Check if the OPEN queue is empty => goal not found
-            if len(open) == 0:
-                return None, -1
-            
-            # Sort the open list by the f value
-            open = deque(sorted(list(open), key=lambda node: node.f))
 
-            # Get the first element of the OPEN queue
+            # Sort OPEN by setF(heuristic) value to prioritize nodes with the lowest setF(heuristic) (A* behavior)
+            open = deque(sorted(open, key=lambda node: node.setF(heuristic)))
+
+            # Pop the node with the lowest setF(heuristic) value from OPEN
             current = open.popleft()
-
-            # Put the current node in the CLOSED list
-            closed.append(current)
 
             # Check if the current node is the goal
             if current.state.isGoal(Node.tab_stat):
                 label123.destroy()
                 return current.getPath(), step
-            elif deadlock_detection:
-                if current.state.isDeadLock(Node.deadlock_map):
-                    continue
-            
-            # Generate the successors of the current node
-            successors = current.state.successorFunction(current)
-            while len(successors) != 0:
-                child, move = successors.popleft()
-                child.setF(heuristic)
 
-                # Check if the child is in the OPEN queue
-                if child.state.tab_dyn in [node.state.tab_dyn for node in open]:
-                    index = [node.state.tab_dyn for node in open].index(child.state.tab_dyn)
-                    if child.f < open[index].f:
-                        open[index] = child
-                # Check if the child is not in CLOSED list
-                elif child.state.tab_dyn not in [node.state.tab_dyn for node in closed]:
-                    open.append(child)
-                # If the child is in CLOSED list
+            # Add current node's unique state as a tuple to CLOSED
+            closed.add(tuple(map(tuple, current.state.tab_dyn)))  # Convert 2D list to a tuple of tuples
+
+            # Generate successors of the current node
+            successors = current.state.successorFunction(current)
+            while successors:
+                child, move = successors.popleft()
+                child.costHeur(heuristic)
+
+                # Skip child if it's a deadlock state
+                if deadlock_detection and child.state.isDeadLock(Node.deadlock_map):
+                    continue
+
+                # Check if the child’s state (converted to a tuple) is already in CLOSED
+                child_state_tuple = tuple(map(tuple, child.state.tab_dyn))
+                if child_state_tuple in closed:
+                    continue
+
+                # Check if child is already in OPEN and update if found with a better setF(heuristic) value
+                open_states = [tuple(map(tuple, node.state.tab_dyn)) for node in open]
+                if child_state_tuple in open_states:
+                    index = open_states.index(child_state_tuple)
+                    if child.setF(heuristic) < open[index].setF(heuristic):
+                        open[index] = child  # Replace with better path
                 else:
-                    index = [node.state.tab_dyn for node in closed].index(child.state.tab_dyn)
-                    if child.f < closed[index].f:
-                        closed.remove(closed[index])
-                        open.append(child)
+                    open.append(child)  # Add new child to OPEN if not already there
+
+        # If OPEN is empty and goal not found
+        return None, -1

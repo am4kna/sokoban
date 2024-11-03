@@ -11,14 +11,16 @@ class Node:
     def __init__(self, sokoPuzzle, parent=None, move="", c=1):
         self.state = sokoPuzzle
         self.parent = parent
-        if self.parent == None:
-            self.g = 0
+        self.c = c  # step cost, always 1 in this case
+        
+        if self.parent is None:
+            self.g = 0  # initial node has no path cost
             self.moves = move
         else:
-            self.g = self.parent.g + c
+            self.g = self.parent.g + self.c  # accumulate path cost
             self.moves = self.parent.moves + move
-        self.f = self.g
-
+        
+        self.f = self.g  # initial fitness function value
 
     def getSolution(self):
         node = self
@@ -29,37 +31,35 @@ class Node:
             state = deepcopy(Node.tab_stat)
             for i, j in itertools.product(range(height), range(width)):
                 if node.state.tab_dyn[i][j] == 'R':
-                    if state[i][j] == ' ':
-                        state[i][j] = 'R'
-                    else:
-                        state[i][j] = '.'
+                    state[i][j] = 'R' if state[i][j] == ' ' else '.'
                 elif node.state.tab_dyn[i][j] == 'B':
-                    if state[i][j] == ' ':
-                        state[i][j] = 'B'
-                    else:
-                        state[i][j] = '*'
+                    state[i][j] = 'B' if state[i][j] == ' ' else '*'
             solution.append(state)
             node = node.parent
-        solution = solution[::-1]
-        return solution
-    
-    def setF(self, heuristic=1):
-        heuristics = {1: self.heuristic1(),
-                      2: self.heuristic2(),
-                      3: self.heuristic3(),}
-        self.g = self.g + heuristics[heuristic]
-        self.f = self.g
-        
+        return solution[::-1]
+
+    def costHeur(self, heuristic=1):  # Calculate heuristic cost
+        # Available heuristics are stored in a dictionary
+        heuristics = {
+            1: self.heuristic1(),
+            2: self.heuristic2(),
+            3: self.heuristic3()
+        }
+        return heuristics[heuristic]
+
+    def setF(self, heuristic=1):  # Set the f value for the current node
+        h = self.costHeur(heuristic)  # Calculate heuristic value
+        self.f = self.g + h  # f = g + h
+        return self.f  # Return f for sorting
+
     def getPath(self):
         path = []
         node = self
         while node is not None:
-            path.append(node)  
-            node = node.parent  
-        path.reverse()  
-        return path
+            path.append(node)
+            node = node.parent
+        return path[::-1]
 
-        
     def heuristic1(self):
         tab_stat = np.array(Node.tab_stat)
         S_indices_x, S_indices_y = np.where(tab_stat == 'S')
@@ -77,10 +77,11 @@ class Node:
         sum_distance = 0
         storage_left = len(S_indices_x)
         for b_ind_x, b_ind_y in zip(B_indices_x, B_indices_y):
-            min_distance = +inf
+            min_distance = inf
             for s_ind_x, s_ind_y in zip(S_indices_x, S_indices_y):
-                distance = abs(b_ind_x-s_ind_x) + abs(b_ind_y-s_ind_y)
-                if distance == 0: storage_left -= 1
+                distance = abs(b_ind_x - s_ind_x) + abs(b_ind_y - s_ind_y)
+                if distance == 0:
+                    storage_left -= 1
                 if distance < min_distance:
                     min_distance = distance
             sum_distance += min_distance
@@ -93,19 +94,18 @@ class Node:
         B_indices_x, B_indices_y = np.where(tab_dyn == 'B')
         sum_distance = 0
         storage_left = len(S_indices_x)
-        min_distance_br = +inf
+        min_distance_br = inf
         for b_ind_x, b_ind_y in zip(B_indices_x, B_indices_y):
             distance_br = abs(b_ind_x - self.state.robot_position[0]) + abs(b_ind_y - self.state.robot_position[1])
             if distance_br < min_distance_br:
                 min_distance_br = distance_br
-            min_distance = +inf
+            min_distance = inf
             for s_ind_x, s_ind_y in zip(S_indices_x, S_indices_y):
                 distance = abs(b_ind_x - s_ind_x) + abs(b_ind_y - s_ind_y)
-                if distance == 0: storage_left -= 1
+                if distance == 0:
+                    storage_left -= 1
                 if distance < min_distance:
                     min_distance = distance
             sum_distance += min_distance
         return sum_distance + min_distance_br + 2 * storage_left
 
-    
-   
