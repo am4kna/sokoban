@@ -149,9 +149,9 @@ class Gui:
         
         if self.final_steps: # si cet itéraion est la derniere, donc on fait des messages
             if self.deadlock_detection:
-                self.label = Label(self.window, text="L'algorithme de "+ self.search_algo + " avec detection de deadlock : ", bg='green', fg='white')
+                self.label = Label(self.window, text="L'algorithme de "+ self.search_algo + " avec detection de deadlock : ", bg='blue', fg='white')
             else:
-                self.label = Label(self.window, text="L'algorithme de "+ self.search_algo + " sans detection de deadlock : ", bg='green', fg='white')
+                self.label = Label(self.window, text="L'algorithme de "+ self.search_algo + " sans detection de deadlock : ", bg='blue', fg='white')
             self.label.pack()
             # make a label to show the number of steps de l'algorithme
             self.label = Label(self.window, text="Nombre de steps utilisé par cet algorithme : " + str(self.num_steps), bg='#FCCD2A', fg='black')

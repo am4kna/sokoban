@@ -18,8 +18,8 @@ class SokoPuzzle:
         self.tab_dyn = tab_dyn
         self.robot_position = robot_position 
                 
-        # List of the robot's moves
-        self.moves = ["U", "D", "L", "R"]        
+        # List of the robot's actions
+        self.actions = ["U", "D", "L", "R"]        
 
     def isDeadLock(self, deadlock_map):
         # Retrieve all the storage cells
@@ -44,11 +44,11 @@ class SokoPuzzle:
     
     def successorFunction(self, parent_node):
         succs = deque()
-        for m in self.moves:
+        for action in self.actions:
             succState = deepcopy(self)
-            if succState.executeMove(m, Node.tab_stat):
-                new_node = Node(succState, parent=parent_node, move=m)
-                succs.append((new_node, m))
+            if succState.executeMove(action, Node.tab_stat):
+                new_node = Node(succState, parent=parent_node, action=action)
+                succs.append((new_node, action))
         return succs
 
     def executeMove(self, action, tab_stat): # Execute the robot's move and return the new state of the puzzle board and the new position of the robot after the move is executed, action is a string representing the robot's move and tab_stat is a 2D array of strings representing the state of the puzzle
